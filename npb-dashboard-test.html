@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NPB Live Dashboard - キャッシュ動作テスト版</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            color: #667eea;
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            color: #666;
+            font-size: 0.9em;
+        }
+        
+        .control-panel {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+        }
+        
+        .control-panel h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .cache-info {
+            background: #f0f4ff;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border-left: 5px solid #667eea;
+        }
+        
+        .cache-status {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .status-item {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .status-item strong {
+            color: #667eea;
+            display: block;
+            margin-bottom: 5px;
+        }
+        
+        .process-monitor {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+        }
+        
+        .process-monitor h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+        
+        .log-container {
+            background: #1e1e1e;
+            color: #00ff00;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            max-height: 400px;
+            overflow-y: auto;
+            line-height: 1.6;
+        }
+        
+        .log-entry {
+            margin-bottom: 8px;
+            padding: 5px;
+            border-left: 3px solid transparent;
+        }
+        
+        .log-entry.info {
+            border-left-color: #00ff00;
+        }
+        
+        .log-entry.warning {
+            border-left-color: #ffaa00;
+            color: #ffaa00;
+        }
+        
+        .log-entry.error {
+            border-left-color: #ff0000;
+            color: #ff0000;
+        }
+        
+        .log-entry.success {
+            border-left-color: #00ffff;
+            color: #00ffff;
+        }
+        
+        .progress-bar {
+            background: #e0e0e0;
+            height: 30px;
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 20px 0;
+            position: relative;
+        }
+        
+        .progress-fill {
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 0.85em;
+        }
+        
+        .data-display {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .data-display h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+        
+        .game-card {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            border-left: 5px solid #667eea;
+            transition: all 0.3s ease;
+        }
+        
+        .game-card:hover {
+            transform: translateX(5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .game-date {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 10px;
+        }
+        
+        .game-score {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .team-home {
+            color: #667eea;
+        }
+        
+        .team-away {
+            color: #764ba2;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        
+        .badge.cache-hit {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .badge.cache-miss {
+            background: #ff9800;
+            color: white;
+        }
+        
+        .countdown {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- ヘッダー -->
+        <div class="header">
+            <h1>⚾ NPB Live Dashboard</h1>
+            <p>キャッシュ動作テスト版 - Vercel Edge Cache シミュレーション</p>
+            <p style="font-size: 0.8em; margin-top: 10px;">※このページは企画書の技術要件をテストするための簡易版です</p>
+        </div>
+
+        <!-- コントロールパネル -->
+        <div class="control-panel">
+            <h2>🎮 コントロールパネル</h2>
+            
+            <div class="cache-info">
+                <h3 style="margin-bottom: 15px;">📊 キャッシュ状態</h3>
+                <div class="cache-status">
+                    <div class="status-item">
+                        <strong>キャッシュ有効期限:</strong>
+                        <span id="cacheExpiry">なし</span>
+                    </div>
+                    <div class="status-item">
+                        <strong>最終取得日時:</strong>
+                        <span id="lastFetch">まだ取得していません</span>
+                    </div>
+                    <div class="status-item">
+                        <strong>キャッシュヒット率:</strong>
+                        <span id="hitRate">0%</span>
+                    </div>
+                    <div class="status-item">
+                        <strong>リクエスト回数:</strong>
+                        <span id="requestCount">0回</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button id="fetchBtn" onclick="fetchData()">
+                    🔄 データ取得（10月の試合結果）
+                </button>
+                <button onclick="clearCache()">
+                    🗑️ キャッシュクリア
+                </button>
+                <button onclick="clearLogs()">
+                    📝 ログクリア
+                </button>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="cacheHits">0</div>
+                    <div class="stat-label">キャッシュヒット</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="cacheMisses">0</div>
+                    <div class="stat-label">キャッシュミス</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="scrapeCount">0</div>
+                    <div class="stat-label">スクレイピング実行</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- プロセスモニター -->
+        <div class="process-monitor">
+            <h2>🖥️ プロセスモニター（裏側の動作）</h2>
+            <div class="log-container" id="logContainer">
+                <div class="log-entry info">[SYSTEM] ログシステム初期化完了</div>
+                <div class="log-entry info">[READY] データ取得ボタンをクリックしてください</div>
+            </div>
+        </div>
+
+        <!-- データ表示エリア -->
+        <div class="data-display">
+            <h2>📅 2025年10月 試合結果</h2>
+            <div id="dataContainer">
+                <p style="color: #999; text-align: center; padding: 40px;">
+                    データを取得するには、上の「データ取得」ボタンをクリックしてください
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // グローバル変数
+        let cacheData = null;
+        let cacheExpiry = null;
+        let lastFetchTime = null;
+        let requestCount = 0;
+        let cacheHits = 0;
+        let cacheMisses = 0;
+        let scrapeCount = 0;
+        
+        // キャッシュ有効期限（3分 = 180秒 = 180000ミリ秒）
+        const CACHE_DURATION = 3 * 60 * 1000;
+        
+        // スクレイピング遅延（5秒）
+        const SCRAPING_DELAY = 5000;
+
+        // ログ追加関数
+        function addLog(message, type = 'info') {
+            const logContainer = document.getElementById('logContainer');
+            const timestamp = new Date().toLocaleTimeString('ja-JP');
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry ${type}`;
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        // ログクリア
+        function clearLogs() {
+            const logContainer = document.getElementById('logContainer');
+            logContainer.innerHTML = '<div class="log-entry info">[SYSTEM] ログをクリアしました</div>';
+        }
+
+        // キャッシュチェック
+        function checkCache() {
+            const now = Date.now();
+            if (cacheData && cacheExpiry && now < cacheExpiry) {
+                return true;
+            }
+            return false;
+        }
+
+        // カウントダウン表示
+        async function showCountdown() {
+            const dataContainer = document.getElementById('dataContainer');
+            const totalSeconds = SCRAPING_DELAY / 1000;
+            
+            for (let i = totalSeconds; i > 0; i--) {
+                dataContainer.innerHTML = `
+                    <div class="spinner"></div>
+                    <div class="countdown">スクレイピング開始まで: ${i}秒</div>
+                    <p style="text-align: center; color: #666; margin-top: 10px;">
+                        サーバー負荷軽減のため意図的な遅延を設定しています
+                    </p>
+                `;
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+        }
+
+        // プログレスバー更新
+        function updateProgress(percent, message) {
+            const dataContainer = document.getElementById('dataContainer');
+            dataContainer.innerHTML = `
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: ${percent}%">
+                        ${message}
+                    </div>
+                </div>
+            `;
+        }
+
+        // NPBサイトから実際のデータをスクレイピング（シミュレーション）
+        async function scrapeNPBData() {
+            addLog('📡 NPB公式サイトへ接続中...', 'info');
+            updateProgress(10, '接続中...');
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            addLog('🔍 HTMLパース処理を開始', 'info');
+            updateProgress(30, 'HTMLパース中...');
+            await new Promise(resolve => setTimeout(resolve, 800));
+
+            addLog('⚙️ Cheerioライブラリでデータ抽出中...', 'info');
+            updateProgress(50, 'データ抽出中...');
+            await new Promise(resolve => setTimeout(resolve, 800));
+
+            addLog('🔄 JSONデータ正規化処理中...', 'info');
+            updateProgress(70, '正規化中...');
+            await new Promise(resolve => setTimeout(resolve, 600));
+
+            // スクレイピングしたデータ（実際のNPBサイトから取得したデータの簡易版）
+            const scrapedData = {
+                month: '2025年10月',
+                games: [
+                    {
+                        date: '10月1日（水）',
+                        matches: [
+                            { home: '巨人', away: '中日', homeScore: 5, awayScore: 2, stadium: '東京ドーム' },
+                            { home: 'DeNA', away: 'ヤクルト', homeScore: 9, awayScore: 6, stadium: '横浜スタジアム' },
+                            { home: 'オリックス', away: '西武', homeScore: 10, awayScore: 5, stadium: '京セラドーム大阪' }
+                        ]
+                    },
+                    {
+                        date: '10月2日（木）',
+                        matches: [
+                            { home: '阪神', away: 'ヤクルト', homeScore: 6, awayScore: 2, stadium: '甲子園' },
+                            { home: 'オリックス', away: '西武', homeScore: 5, awayScore: 6, stadium: '京セラドーム大阪' }
+                        ]
+                    },
+                    {
+                        date: '10月3日（金）',
+                        matches: [
+                            { home: '広島', away: 'ヤクルト', homeScore: 1, awayScore: 6, stadium: 'MAZDA Zoom-Zoom スタジアム広島' },
+                            { home: '楽天', away: '西武', homeScore: 7, awayScore: 6, stadium: '楽天モバイルパーク宮城' },
+                            { home: 'ソフトバンク', away: 'オリックス', homeScore: 10, awayScore: 2, stadium: 'PayPayドーム' }
+                        ]
+                    },
+                    {
+                        date: '10月11日（土） - クライマックスシリーズ ファーストステージ',
+                        matches: [
+                            { home: 'DeNA', away: '巨人', homeScore: 6, awayScore: 2, stadium: '横浜スタジアム', type: 'CS' },
+                            { home: '日本ハム', away: 'オリックス', homeScore: 2, awayScore: 0, stadium: 'エスコンフィールドHOKKAIDO', type: 'CS' }
+                        ]
+                    },
+                    {
+                        date: '10月25日（土） - 日本シリーズ',
+                        matches: [
+                            { home: 'ソフトバンク', away: '阪神', homeScore: 1, awayScore: 2, stadium: 'PayPayドーム', type: 'JS' }
+                        ]
+                    }
+                ],
+                scrapedAt: new Date().toISOString()
+            };
+
+            addLog('✅ データ取得完了（JSONキャッシュに保存）', 'success');
+            updateProgress(100, '完了');
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            scrapeCount++;
+            document.getElementById('scrapeCount').textContent = scrapeCount;
+
+            return scrapedData;
+        }
+
+        // データ取得メイン関数
+        async function fetchData() {
+            const fetchBtn = document.getElementById('fetchBtn');
+            fetchBtn.disabled = true;
+            requestCount++;
+            
+            addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'info');
+            addLog(`🚀 リクエスト #${requestCount} を受信`, 'info');
+            
+            // キャッシュチェック
+            if (checkCache()) {
+                addLog('✨ キャッシュヒット！ 既存データを返却します', 'success');
+                addLog(`📦 キャッシュ有効期限: ${new Date(cacheExpiry).toLocaleString('ja-JP')}`, 'info');
+                addLog('⚡ スクレイピングをスキップ（サーバー負荷ゼロ）', 'success');
+                
+                cacheHits++;
+                document.getElementById('cacheHits').textContent = cacheHits;
+                
+                displayData(cacheData, true);
+                fetchBtn.disabled = false;
+                updateStats();
+                return;
+            }
+            
+            // キャッシュミス
+            addLog('⚠️ キャッシュミス！ 新規データ取得が必要です', 'warning');
+            cacheMisses++;
+            document.getElementById('cacheMisses').textContent = cacheMisses;
+            
+            addLog(`⏱️ ${SCRAPING_DELAY/1000}秒の遅延を開始（連続アクセス防止）`, 'warning');
+            addLog('🛡️ NPB公式サイトへの負荷軽減措置を実施中...', 'info');
+            
+            // カウントダウン表示
+            await showCountdown();
+            
+            // スクレイピング実行
+            addLog('🔧 Vercel Serverless Function を起動', 'info');
+            addLog('User-Agent: NPB-Live-Dashboard/1.0 (Educational Purpose)', 'info');
+            
+            try {
+                const data = await scrapeNPBData();
+                
+                // キャッシュに保存
+                cacheData = data;
+                cacheExpiry = Date.now() + CACHE_DURATION;
+                lastFetchTime = Date.now();
+                
+                addLog(`💾 キャッシュ保存完了（有効期限: 3分）`, 'success');
+                addLog(`📊 次回アクセス時はキャッシュから即座に返却されます`, 'info');
+                
+                displayData(data, false);
+                updateStats();
+                
+            } catch (error) {
+                addLog(`❌ エラー発生: ${error.message}`, 'error');
+                document.getElementById('dataContainer').innerHTML = `
+                    <p style="color: red; text-align: center; padding: 40px;">
+                        データ取得に失敗しました: ${error.message}
+                    </p>
+                `;
+            }
+            
+            fetchBtn.disabled = false;
+        }
+
+        // データ表示
+        function displayData(data, fromCache) {
+            const dataContainer = document.getElementById('dataContainer');
+            const badgeClass = fromCache ? 'cache-hit' : 'cache-miss';
+            const badgeText = fromCache ? 'キャッシュから取得' : '新規スクレイピング';
+            
+            let html = `
+                <div style="text-align: right; margin-bottom: 20px;">
+                    <span class="badge ${badgeClass}">${badgeText}</span>
+                </div>
+            `;
+            
+            data.games.forEach(day => {
+                html += `<h3 style="color: #667eea; margin: 25px 0 15px 0;">${day.date}</h3>`;
+                day.matches.forEach(match => {
+                    const winner = match.homeScore > match.awayScore ? 'home' : 'away';
+                    const matchType = match.type === 'CS' ? ' 🏆 クライマックスシリーズ' : 
+                                     match.type === 'JS' ? ' 🎖️ 日本シリーズ' : '';
+                    
+                    html += `
+                        <div class="game-card">
+                            <div class="game-date">📍 ${match.stadium}${matchType}</div>
+                            <div class="game-score">
+                                <span class="team-away ${winner === 'away' ? 'winner' : ''}">${match.away}</span>
+                                <span style="color: #999; margin: 0 15px;">${match.awayScore} - ${match.homeScore}</span>
+                                <span class="team-home ${winner === 'home' ? 'winner' : ''}">${match.home}</span>
+                            </div>
+                        </div>
+                    `;
+                });
+            });
+            
+            html += `
+                <div style="margin-top: 30px; padding: 20px; background: #f0f4ff; border-radius: 10px;">
+                    <p style="font-size: 0.85em; color: #666; line-height: 1.8;">
+                        <strong>📊 データ出典:</strong> NPB公式サイト (https://npb.jp/)<br>
+                        <strong>⏰ 取得日時:</strong> ${new Date(data.scrapedAt).toLocaleString('ja-JP')}<br>
+                        <strong>💾 キャッシュ方式:</strong> Vercel Edge Cache シミュレーション（3分間有効）
+                    </p>
+                </div>
+            `;
+            
+            dataContainer.innerHTML = html;
+        }
+
+        // 統計情報更新
+        function updateStats() {
+            if (lastFetchTime) {
+                document.getElementById('lastFetch').textContent = new Date(lastFetchTime).toLocaleString('ja-JP');
+            }
+            
+            if (cacheExpiry) {
+                const remaining = Math.max(0, Math.floor((cacheExpiry - Date.now()) / 1000));
+                const minutes = Math.floor(remaining / 60);
+                const seconds = remaining % 60;
+                document.getElementById('cacheExpiry').textContent = 
+                    `${minutes}分${seconds}秒後（${new Date(cacheExpiry).toLocaleTimeString('ja-JP')}）`;
+            }
+            
+            const hitRate = requestCount > 0 ? Math.round((cacheHits / requestCount) * 100) : 0;
+            document.getElementById('hitRate').textContent = `${hitRate}%`;
+            document.getElementById('requestCount').textContent = `${requestCount}回`;
+        }
+
+        // キャッシュクリア
+        function clearCache() {
+            cacheData = null;
+            cacheExpiry = null;
+            addLog('🗑️ キャッシュをクリアしました', 'warning');
+            addLog('次回アクセス時は新規スクレイピングが実行されます', 'info');
+            document.getElementById('cacheExpiry').textContent = 'なし';
+            updateStats();
+        }
+
+        // 統計情報を1秒ごとに更新
+        setInterval(updateStats, 1000);
+
+        // ページロード時のログ
+        window.addEventListener('load', () => {
+            addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'success');
+            addLog('🎉 NPB Live Dashboard 初期化完了', 'success');
+            addLog('📋 企画書バージョン: 1.0', 'info');
+            addLog('⚙️ キャッシュ有効期限: 3分（テスト用）', 'info');
+            addLog('⏱️ スクレイピング遅延: 5秒', 'info');
+            addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'success');
+        });
+    </script>
+</body>
+</html>
